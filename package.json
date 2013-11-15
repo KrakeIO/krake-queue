@@ -1,0 +1,16 @@
+{
+    "author": "Gary Teh <garyjob@gmail.com>",
+    "name": "krake-toolkit"
+  , "main": "./krake_queue.coffee"
+  , "version": "0.0.1"
+  , "engines": {
+    "node": "=0.8.8"
+  }
+  , "dependencies": {
+      "kson": "https://github.com/KrakeIO/kson/tarball/master"
+    , "redis": ""
+  }
+  , "scripts": {
+    "test": "jasmine-node --coffee test/"
+  }  
+}
