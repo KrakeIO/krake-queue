@@ -166,7 +166,6 @@ class QueueInterface
 
 
   # @Description: adds a new task to the end of queue
-  # @param: master_id:string
   # @param: auth_token:string
   # @param: task_type:string
   #    - There are only 2 task_types to date :
@@ -189,7 +188,6 @@ class QueueInterface
     if queueName == 'QUARANTINED_TASKS'
     else queueName = @redisInfo.authToken
 
-    task_option_obj.master_id = master_id
     task_option_obj.task_id = task_id
     task_option_obj.task_type = task_type
     task_info_string = kson.stringify task_option_obj
