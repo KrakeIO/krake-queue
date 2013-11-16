@@ -82,7 +82,7 @@ class QueueInterface
   # @param: queueName:string
   # @param: callback:function(result:integer)
   getNumTaskleft: (queueName, callback)->
-    @redisClient.llen @redisInfo.authToken, (error, result)=>
+    @redisClient.llen queueName, (error, result)=>
       callback result
 
 
