@@ -30,6 +30,7 @@ class QueueInterface
     @redisClient = redis.createClient redisInfo.port, redisInfo.host
     @redisEventListener = redis.createClient redisInfo.port, redisInfo.host
     @redisEventListener.psubscribe (redisInfo.authToken + "*")
+      
     @redisEventListener.on 'pmessage', (event_key, message)=>
       if @stop_receive then return
       event_name = event_key.split(':')[1]
