@@ -30,7 +30,7 @@ class QueueInterface
     @redisClient = redis.createClient redisInfo.port, redisInfo.host
     @redisEventListener = redis.createClient redisInfo.port, redisInfo.host
     
-    console.log "[QUEUE_INTERFACE] Subscribed to : " + redisInfo.queueName + "*"
+    console.log "[QUEUE_INTERFACE] : Subscribed to : " + redisInfo.queueName + "*"
     @redisEventListener.psubscribe (redisInfo.queueName + "*")
       
     @redisEventListener.on 'pmessage', (channel_name , event_key, message)=>
