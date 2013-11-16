@@ -1,6 +1,6 @@
 {
     "author": "Gary Teh <garyjob@gmail.com>",
-    "name": "krake-toolkit"
+    "name": "krake-queue"
   , "main": "./krake_queue.coffee"
   , "version": "0.0.1"
   , "engines": {
