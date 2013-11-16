@@ -172,6 +172,7 @@ class QueueInterface
   #       'listing page scrape'
   #       'detailed page scrape'  
   # @param: task_option_obj:object
+  # @param: task_position:string
   # @param: callback:function()
   addTaskToQueue: (auth_token, task_type, task_option_obj, task_position, callback)->
 
@@ -188,7 +189,7 @@ class QueueInterface
     if queueName == 'QUARANTINED_TASKS'
     else queueName = @redisInfo.authToken
 
-    task_option_obj.task_id = task_id
+    task_option_obj.task_id = auth_token
     task_option_obj.task_type = task_type
     task_info_string = kson.stringify task_option_obj
     @redisClient[pushMethod] queueName, task_info_string, (error, result)=>
