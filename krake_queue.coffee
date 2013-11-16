@@ -83,8 +83,8 @@ class QueueInterface
 
 
   # @Description: notifies all slave there is a new task on the tray
-  announceNewTask: ()->
-    @broadcast 'new task'
+  announceNewTask: (auth_token)->
+    @broadcast 'new task', auth_token
 
   
   # @Description: returns the logs to the master
@@ -167,14 +167,14 @@ class QueueInterface
 
   # @Description: adds a new task to the end of queue
   # @param: master_id:string
-  # @param: task_id:string
+  # @param: auth_token:string
   # @param: task_type:string
   #    - There are only 2 task_types to date :
   #       'listing page scrape'
   #       'detailed page scrape'  
   # @param: task_option_obj:object
   # @param: callback:function()
-  addTaskToQueue: (master_id, task_id, task_type, task_option_obj, task_position, callback)->
+  addTaskToQueue: (auth_token, task_type, task_option_obj, task_position, callback)->
 
     if @stop_send
       console.log '[QUEUE_INTERFACE] : Embargoed. Not pushing anything to the queue stack'
@@ -194,7 +194,7 @@ class QueueInterface
     task_option_obj.task_type = task_type
     task_info_string = kson.stringify task_option_obj
     @redisClient[pushMethod] queueName, task_info_string, (error, result)=>
-      @announceNewTask()
+      @announceNewTask(auth_token)
       callback && callback()
 
 
