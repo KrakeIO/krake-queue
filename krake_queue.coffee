@@ -62,7 +62,11 @@ class QueueInterface
     @eventListeners[event_key] = callback
 
 
-
+  # @Description: broadcast an event to all slaves and master in the cluster
+  # @param: authToken:string
+  # @param: eventName:string
+  # @param: message:string
+  # @param: callback:function()
   broadcast: (authToken, eventName, message, callback)->
     message = kson.stringify message
     switch eventName
@@ -75,6 +79,7 @@ class QueueInterface
 
 
   # @Description: gets count of outstanding subtask for task
+  # @param: queueName:string
   # @param: callback:function(result:integer)
   getNumTaskleft: (queueName, callback)->
     @redisClient.llen @redisInfo.authToken, (error, result)=>
@@ -157,6 +162,8 @@ class QueueInterface
 
   
   # @Description: empties the task queue
+  # @param: queueName:string
+  # @param: callback:function()  
   emptyQueue : (queueName, callback)->
     @redisClient.del queueName, (error, result)=>
       console.log '[QUEUE_INTERFACE] : Task Queue (%s) was emptied', queueName      
