@@ -42,7 +42,13 @@ class QueueInterface
   # @Description: triggers the callback function to be called for the incoming event
   # @param event_key:string
   processEvent: (event_key, message)->
-    @eventListeners[event_key] && @eventListeners[event_key](message)
+    try
+      resObj = kson.parse message
+      
+    catch e
+      resObj = {}
+      
+    @eventListeners[event_key] && @eventListeners[event_key](resObj)
 
 
   
