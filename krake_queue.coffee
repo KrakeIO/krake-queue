@@ -33,7 +33,7 @@ class QueueInterface
     @redisEventListener.on 'pmessage', (event_key, message)=>
       if @stop_receive then return
       event_name = event_key.split(':')[1]
-      @processEvent(event_name)
+      @processEvent(event_name, message)
 
     initialCallBack && initialCallBack()
   
@@ -41,8 +41,8 @@ class QueueInterface
   
   # @Description: triggers the callback function to be called for the incoming event
   # @param event_key:string
-  processEvent: (event_key)->
-    @eventListeners[event_key] && @eventListeners[event_key]()
+  processEvent: (event_key, message)->
+    @eventListeners[event_key] && @eventListeners[event_key](message)
 
 
   
