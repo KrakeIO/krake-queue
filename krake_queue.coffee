@@ -36,22 +36,12 @@ class QueueInterface
     @redisEventListener.on 'pmessage', (channel_name , event_key, message)=>
       if @stop_receive then return
       event_name = event_key.split(':')[1]
-      @processEvent(event_name, message)
+      queueName = event_key.split(':')[0]
+      try resObj = kson.parse message
+      catch e then resObj = {}
+      @eventListeners[event_name] && @eventListeners[event_name](queueName, resObj)
 
     initialCallBack && initialCallBack()
-  
-  
-  
-  # @Description: triggers the callback function to be called for the incoming event
-  # @param event_key:string
-  processEvent: (event_key, message)->
-    try
-      resObj = kson.parse message
-      
-    catch e
-      resObj = {}
-      
-    @eventListeners[event_key] && @eventListeners[event_key](resObj)
 
 
   
