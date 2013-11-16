@@ -82,17 +82,6 @@ class QueueInterface
 
 
 
-  # @Description: clears all the tasks in the cluster
-  #   A cluster will include the slave instances as well as the queue in the Redis Server
-  # @param: queueName:string  
-  # @param: callback:function  
-  abortTask: (queueName, callback)->
-      
-    @boardcast queueName, 'kill task', (error, result)=>
-      console.log '[QUEUE_INTERFACE] : Genocide committed on all Krakes in cluster'
-      @emptyQueue queueName, callback
-
-
   # @Description: gets the next task from the queue
   # @param: queueName:string
   # @param: callback:function( task_option_obj:object || false:boolean )
@@ -170,7 +159,7 @@ class QueueInterface
   # @Description: empties the task queue
   emptyQueue : (queueName, callback)->
     @redisClient.del queueName, (error, result)=>
-      console.log '[QUEUE_INTERFACE] : Task Queue (%s) was emptied', @redisInfo.authToken        
+      console.log '[QUEUE_INTERFACE] : Task Queue (%s) was emptied', queueName      
       callback && callback()
   
 
