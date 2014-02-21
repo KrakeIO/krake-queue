@@ -57,7 +57,6 @@ describe "QueueInterface", ->
     @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', () =>
       @qi.getTaskFromQueue @queue_name, (task_obj)=>
         expect(typeof task_obj).toBe "object"
-        console.log task_obj
         expect(task_obj["task_id"]).toEqual "UNIT_TESTING_QUEUE"
         expect(task_obj["task_type"]).toEqual "UNIT_TESTING_TASK_TYPE"
         done()

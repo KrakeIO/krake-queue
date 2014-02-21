@@ -31,7 +31,7 @@ class QueueInterface
     @redisClient = redis.createClient redisInfo.port, redisInfo.host
     @redisEventListener = redis.createClient redisInfo.port, redisInfo.host
     
-    console.log "[QUEUE_INTERFACE] : Subscribed to : " + redisInfo.queueName + "*"
+    # console.log "[QUEUE_INTERFACE] : Subscribed to : " + redisInfo.queueName + "*"
     @redisEventListener.psubscribe (redisInfo.queueName + "*")
       
     @redisEventListener.on 'pmessage', (channel_name , event_key, message)=>
@@ -64,7 +64,6 @@ class QueueInterface
         @redisClient.publish authToken + ':' + eventName, message, (error, result)=>
           callback && callback(true)
       else
-        console.log '[QUEUE_INTERFACE] unrecognized event : %s ', eventName
         callback && callback(false)
 
   # @Description: gets count of outstanding subtask for task
@@ -127,9 +126,7 @@ class QueueInterface
   # @param: callback:function()
   addTaskToQueue: (queueName, task_type, task_option_obj, task_position, callback)->
     @queue_names.push(queueName) unless queueName in @queue_names
-    if @stop_send
-      console.log '[QUEUE_INTERFACE] : Embargoed. Not pushing anything to the queue stack'
-      return
+    if @stop_send then return
 
     switch task_position
       when 'head' then pushMethod = 'lpush'
@@ -152,7 +149,6 @@ class QueueInterface
   # @param: callback:function()  
   emptyQueue : (queueName, callback)->
     @redisClient.del queueName, (error, result)=>
-      console.log '[QUEUE_INTERFACE] : Task Queue (%s) was emptied', queueName      
       callback && callback()
 
   # Returns the environment this queue is currently running in
