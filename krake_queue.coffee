@@ -18,6 +18,7 @@ class QueueInterface
   #         breadth = go as broad as possiblebefore going deep  
   # @param: initialCallBack:function()
   constructor: (redisInfo, initialCallBack)->
+    @queue_names = ['QUARANTINED_TASKS']
     @eventListeners = {}
     
     #when true prevents pushing to queue stack
@@ -51,7 +52,6 @@ class QueueInterface
   setEventListener: (event_key, callback)->
     @eventListeners[event_key] = callback
 
-
   # @Description: broadcast an event to all slaves and master in the cluster
   # @param: authToken:string
   # @param: eventName:string
@@ -62,20 +62,18 @@ class QueueInterface
     switch eventName
       when 'mercy', 'status ping', 'new task', 'logs', 'results', 'kill task'
         @redisClient.publish authToken + ':' + eventName, message, (error, result)=>
-          callback && callback()
+          callback && callback(true)
       else
         console.log '[QUEUE_INTERFACE] unrecognized event : %s ', eventName
-
-
+        callback && callback(false)
 
   # @Description: gets count of outstanding subtask for task
   # @param: queueName:string
   # @param: callback:function(result:integer)
   getNumTaskleft: (queueName, callback)->
+    @queue_names.push(queueName) unless queueName in @queue_names
     @redisClient.llen queueName, (error, result)=>
-      callback result
-
-
+      callback && callback result
 
   # @Description: gets the next task from the queue
   # @param: queueName:string
@@ -102,7 +100,7 @@ class QueueInterface
   #            dom_query : '.tabfield18504'
   #          }]   
   getTaskFromQueue: (queueName, callback)->
-    
+    @queue_names.push(queueName) unless queueName in @queue_names
     switch @redisInfo.scrapeMode
       when 'depth' then pop_method = 'rpop'
       when 'breadth' then pop_method = 'lpop'
@@ -118,8 +116,6 @@ class QueueInterface
       catch error
         callback false
 
-
-
   # @Description: adds a new task to the end of queue
   # @param: queueName:string
   # @param: task_type:string
@@ -130,7 +126,7 @@ class QueueInterface
   # @param: task_position:string
   # @param: callback:function()
   addTaskToQueue: (queueName, task_type, task_option_obj, task_position, callback)->
-
+    @queue_names.push(queueName) unless queueName in @queue_names
     if @stop_send
       console.log '[QUEUE_INTERFACE] : Embargoed. Not pushing anything to the queue stack'
       return
@@ -158,6 +154,19 @@ class QueueInterface
     @redisClient.del queueName, (error, result)=>
       console.log '[QUEUE_INTERFACE] : Task Queue (%s) was emptied', queueName      
       callback && callback()
+
+  # Returns the environment this queue is currently running in
+  environment : ()->
+    process.env['NODE_ENV']
+
+  # Shuts down all redis clients listened by this Krake and empties the queue
+  # This method is only available in testing mode
+  quit : ()->
+    return false if process.env['NODE_ENV'] != 'test'
+    @queue_names.forEach (queue_name)=>
+      @emptyQueue queue_name
+    @redisClient.quit()
+    @redisEventListener.quit()
   
 
 
