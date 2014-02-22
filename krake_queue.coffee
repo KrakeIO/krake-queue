@@ -158,9 +158,7 @@ class QueueInterface
   # Shuts down all redis clients listened by this Krake and empties the queue
   # This method is only available in testing mode
   quit : ()->
-    return false if process.env['NODE_ENV'] != 'test'
-    @queue_names.forEach (queue_name)=>
-      @emptyQueue queue_name
+    @redisClient.flushall()
     @redisClient.quit()
     @redisEventListener.quit()
   
