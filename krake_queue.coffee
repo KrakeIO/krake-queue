@@ -155,6 +155,11 @@ class QueueInterface
   environment : ()->
     process.env['NODE_ENV']
 
+  # Empties the redis database of all jobs
+  clear : (callback)->
+    @redisClient.flushall (err, succeeded)=>
+      callback && callback(err, succeeded)
+
   # Shuts down all redis clients listened by this Krake and empties the queue
   # This method is only available in testing mode
   quit : (callback)->
