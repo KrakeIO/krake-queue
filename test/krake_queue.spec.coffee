@@ -11,16 +11,20 @@ redisInfo =
   "scrapeMode": "depth"
 
 describe "QueueInterface", ->
-  beforeEach ()->
-    @broadcast_channel = 'UNIT_TESTING_CHANNEL'
-    @queue_name = queue_name
-    @task_type =  'UNIT_TESTING_TASK_TYPE'
-    @auth_token = auth_token
-    @task_option_obj = JSON.parse(fs.readFileSync(__dirname + '/fixtures/krake_definition.json').toString())
-    @qi = new QueueInterface redisInfo
+  beforeEach (done)->
+    clear_qi = new QueueInterface redisInfo
+    promise = clear_qi.quit (err, succeeded)=>
+      @broadcast_channel = 'UNIT_TESTING_CHANNEL'
+      @queue_name = queue_name
+      @task_type =  'UNIT_TESTING_TASK_TYPE'
+      @auth_token = auth_token
+      @task_option_obj = JSON.parse(fs.readFileSync(__dirname + '/fixtures/krake_definition.json').toString())
+      @qi = new QueueInterface redisInfo
+      done()
 
-  afterEach ()->
-    @qi.quit()
+  afterEach (done)->
+    @qi.quit (err, succeeded)->
+      done()
 
   it "queue should be running in testing environment", ->
     expect(@qi.environment()).toEqual 'test'

@@ -157,10 +157,11 @@ class QueueInterface
 
   # Shuts down all redis clients listened by this Krake and empties the queue
   # This method is only available in testing mode
-  quit : ()->
-    @redisClient.flushall()
-    @redisClient.quit()
-    @redisEventListener.quit()
+  quit : (callback)->
+    @redisClient.flushall (err, succeeded)=>
+      @redisClient.quit()
+      @redisEventListener.quit()
+      callback && callback(err, succeeded)
   
 
 
