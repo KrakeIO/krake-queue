@@ -58,13 +58,19 @@ class QueueInterface
   # @param: message:string
   # @param: callback:function()
   broadcast: (authToken, eventName, message, callback)->
+    deferred = Q.defer()
     message = kson.stringify message
     switch eventName
       when 'mercy', 'status ping', 'new task', 'logs', 'results', 'kill task'
         @redisClient.publish authToken + ':' + eventName, message, (error, result)=>
           callback? true
+          if error
+            deferred.reject error
+          else
+            deferred.resolve true
       else
         callback? false
+    deferred.promise        
 
   # @Description: Sets queueName to be Busy for x seconds
   # @param:   queueName:String
