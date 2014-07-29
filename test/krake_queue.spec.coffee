@@ -79,3 +79,44 @@ describe "QueueInterface", ->
       @qi.broadcast @auth_token, "new task", message_obj, (status)=>
         expect(status).toEqual true
     , 100
+
+  describe "setIsBusy", ->
+    it "should return value when not expired", (done)->
+      @qi.setIsBusy @auth_token, 30, ()=>
+        @qi.redisClient.get "#{@auth_token}_BUSY", (error, result)->
+          expect(result).toEqual "BUSY"
+          done()
+
+    it "should return null if when expired", (done) ->
+      @qi.setIsBusy @auth_token, 1, ()=>
+        setTimeout ()=>
+          @qi.redisClient.get "#{@auth_token}_BUSY", (error, result)->
+            expect(result).toBe null
+            done()
+        , 1100
+
+  describe "isBusy", ->
+
+    it "should return true when is #{@auth_token} is not empty and #{@auth_token}_BUSY is 'BUSY'", (done) ->
+      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', ()=>
+        @qi.setIsBusy @auth_token, 30, ()=>
+          @qi.isBusy @auth_token, (is_busy)=>
+            expect(is_busy).toEqual true
+            done()
+
+    it "should return true when is #{@auth_token} is empty and #{@auth_token}_BUSY is 'BUSY'", (done) ->
+      @qi.setIsBusy @auth_token, 30, ()=>
+        @qi.isBusy @auth_token, (is_busy)=>
+          expect(is_busy).toEqual true
+          done()
+
+    it "should return true when is #{@auth_token} is not empty and #{@auth_token}_BUSY is null", (done) ->
+      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', ()=>
+        @qi.isBusy @auth_token, (is_busy)=>
+          expect(is_busy).toEqual true
+          done()
+
+    it "should return false when is #{@auth_token} is empty and #{@auth_token}_BUSY is null", (done) ->
+      @qi.isBusy @auth_token, (is_busy)=>
+        expect(is_busy).toEqual false
+        done()

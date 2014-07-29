@@ -44,8 +44,6 @@ class QueueInterface
 
     initialCallBack && initialCallBack()
 
-
-  
   # @Description: sets the event listeners, triggered with event is called remotely
   # @param: event_key:string
   # @param: callback:function()
@@ -65,6 +63,26 @@ class QueueInterface
           callback && callback(true)
       else
         callback && callback(false)
+
+  # @Description: Sets queueName to be Busy for x seconds
+  # @param: queueName:String
+  # @param: sec_expiry:Int
+  # @param: callback:function()
+  setIsBusy: (queueName, sec_expiry, callback)->
+    @redisClient.setex "#{queueName}_BUSY", sec_expiry, "BUSY", (error, result)->
+      callback && callback()
+
+
+  # @Description: Atomic method to check that REDIS:queueName llen > 0 && REDIS:queueName_BUSY == true
+  # @param: queueName:String
+  # @param: callback:function( busy:Boolean )
+  isBusy: (queueName, callback)->
+    @redisClient.multi([
+      ["llen", queueName],
+      ["get", "#{queueName}_BUSY"]
+    ]).exec (err, replies)->
+        is_busy = replies[0] > 0 || !!replies[1]
+        callback && callback is_busy
 
   # @Description: gets count of outstanding subtask for task
   # @param: queueName:string
@@ -131,7 +149,7 @@ class QueueInterface
     switch task_position
       when 'head' then pushMethod = 'lpush'
       when 'tail' then pushMethod = 'rpush'
-      when 'bad' then pushMethod = 'rpush'  
+      when 'bad' then pushMethod = 'rpush'
       else pushMethod = 'rpush'
 
     if task_position == 'bad' then queueName == 'QUARANTINED_TASKS'
