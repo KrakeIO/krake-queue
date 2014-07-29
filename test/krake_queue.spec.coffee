@@ -126,3 +126,16 @@ describe "QueueInterface", ->
       @qi.isBusy @auth_token, (is_busy)=>
         expect(is_busy).toEqual false
         done()
+
+  describe "areEngaged", ->
+    it "should return true when is #{@auth_token}_BUSY is 'BUSY'", (done) ->
+      @qi.setIsBusy @auth_token, 30
+        .then ()=> @qi.areEngaged @auth_token
+        .then (are_engaged)=>
+          expect(are_engaged).toEqual true
+          done()
+
+    it "should return false when #{@auth_token}_BUSY is not 'BUSY'", (done) ->
+      @qi.areEngaged @auth_token, (are_engaged)=>
+          expect(are_engaged).toEqual false
+          done()    

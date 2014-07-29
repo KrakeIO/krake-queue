@@ -74,7 +74,7 @@ class QueueInterface
   setIsBusy: (queueName, sec_expiry, callback)->
     deferred = Q.defer()
     @redisClient.setex "#{queueName}_BUSY", sec_expiry, "BUSY", (error, result)->
-      callback?()
+      callback? result
       if error
         deferred.reject error
       else
@@ -92,14 +92,28 @@ class QueueInterface
       ["llen", queueName],
       ["get", "#{queueName}_BUSY"]
     ]).exec (err, replies)->
-        is_busy = replies[0] > 0 || !!replies[1]
+        is_busy = replies[0] > 0 || replies[1] == "BUSY"
         callback? is_busy
         if err
           deferred.reject err
         else
           deferred.resolve is_busy
 
-    deferred.promise            
+    deferred.promise
+
+  # @Description: check that REDIS:queueName_BUSY == true
+  # @param: queueName:String
+  # @param: callback:function( busy:Boolean )
+  areEngaged: (queueName, callback)->
+    deferred = Q.defer()
+    @redisClient.get "#{queueName}_BUSY", (error, result)->
+      are_engaged = result == "BUSY"
+      callback? are_engaged
+      if error
+        deferred.reject error
+      else
+        deferred.resolve are_engaged
+    deferred.promise
 
   # @Description: gets count of outstanding subtask for task
   # @param: queueName:string
