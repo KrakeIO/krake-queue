@@ -59,8 +59,9 @@ describe "QueueInterface", ->
       done()
 
   it "should get a task from queue successfully", (done) ->
-    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', () =>
-      @qi.getTaskFromQueue @queue_name, (task_obj)=>
+    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+      .then ()=> @qi.getTaskFromQueue @queue_name
+      .then (task_obj)=>
         expect(typeof task_obj).toBe "object"
         expect(task_obj["task_id"]).toEqual "UNIT_TESTING_QUEUE"
         expect(task_obj["task_type"]).toEqual "UNIT_TESTING_TASK_TYPE"

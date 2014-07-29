@@ -44,7 +44,7 @@ class QueueInterface
       catch e then resObj = {}
       @eventListeners[event_name] && @eventListeners[event_name](queueName, resObj)
 
-    initialCallBack && initialCallBack()
+    initialCallBack?()
 
   # @Description: sets the event listeners, triggered with event is called remotely
   # @param: event_key:string
@@ -62,9 +62,9 @@ class QueueInterface
     switch eventName
       when 'mercy', 'status ping', 'new task', 'logs', 'results', 'kill task'
         @redisClient.publish authToken + ':' + eventName, message, (error, result)=>
-          callback && callback(true)
+          callback? true
       else
-        callback && callback(false)
+        callback? false
 
   # @Description: Sets queueName to be Busy for x seconds
   # @param:   queueName:String
@@ -74,7 +74,7 @@ class QueueInterface
   setIsBusy: (queueName, sec_expiry, callback)->
     deferred = Q.defer()
     @redisClient.setex "#{queueName}_BUSY", sec_expiry, "BUSY", (error, result)->
-      callback && callback()
+      callback?()
       if error
         deferred.reject error
       else
@@ -93,7 +93,7 @@ class QueueInterface
       ["get", "#{queueName}_BUSY"]
     ]).exec (err, replies)->
         is_busy = replies[0] > 0 || !!replies[1]
-        callback && callback is_busy
+        callback? is_busy
         if err
           deferred.reject err
         else
@@ -108,7 +108,7 @@ class QueueInterface
     deferred = Q.defer()
     @queue_names.push(queueName) unless queueName in @queue_names
     @redisClient.llen queueName, (error, result)=>
-      callback && callback result
+      callback? result
       if error
         deferred.reject error
       else
@@ -141,6 +141,7 @@ class QueueInterface
   #            dom_query : '.tabfield18504'
   #          }]   
   getTaskFromQueue: (queueName, callback)->
+    deferred = Q.defer()
     @queue_names.push(queueName) unless queueName in @queue_names
     switch @redisInfo.scrapeMode
       when 'depth' then pop_method = 'rpop'
@@ -148,14 +149,21 @@ class QueueInterface
       else pop_method = 'lpop'
       
     @redisClient[pop_method] queueName, (error, task_info_string)=>
-      try
-        if task_info_string
-          task_option_obj = kson.parse task_info_string
-          callback task_option_obj
-        else 
-          callback false          
-      catch error
-        callback false
+      if error 
+        deferred.reject error
+      else
+        try
+          if task_info_string
+            task_option_obj = kson.parse task_info_string
+            callback? task_option_obj
+            deferred.resolve task_option_obj
+          else 
+            callback? false
+            deferred.resolve false
+        catch error
+          callback? false
+          deferred.reject error
+    deferred.promise
 
   # @Description: adds a new task to the end of queue
   # @param: queueName:string
@@ -167,7 +175,7 @@ class QueueInterface
   # @param: task_position:string
   # @param: callback:function()
   addTaskToQueue: (queueName, task_type, task_option_obj, task_position, callback)->
-    deferred = Q.defer()    
+    deferred = Q.defer()
     @queue_names.push(queueName) unless queueName in @queue_names
     if @stop_send then return
 
@@ -183,7 +191,7 @@ class QueueInterface
     task_option_obj.task_type = task_type
     task_info_string = kson.stringify task_option_obj
     @redisClient[pushMethod] queueName, task_info_string, (error, result)=>
-      callback && callback result
+      callback? result
       if error
         deferred.reject error
       else
@@ -199,7 +207,7 @@ class QueueInterface
   emptyQueue : (queueName, callback)->
     deferred = Q.defer()    
     @redisClient.del queueName, (error, result)=>
-      callback && callback result
+      callback? result
       if error
         deferred.reject error
       else
@@ -214,7 +222,7 @@ class QueueInterface
   # Empties the redis database of all jobs
   clear : (callback)->
     @redisClient.flushall (err, succeeded)=>
-      callback && callback(err, succeeded)
+      callback? err, succeeded
 
   # Shuts down all redis clients listened by this Krake and empties the queue
   # This method is only available in testing mode
@@ -222,7 +230,7 @@ class QueueInterface
     @redisClient.flushall (err, succeeded)=>
       @redisClient.quit()
       @redisEventListener.quit()
-      callback && callback(err, succeeded)
+      callback? err, succeeded
   
 
 
