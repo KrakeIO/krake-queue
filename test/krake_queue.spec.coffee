@@ -38,18 +38,20 @@ describe "QueueInterface", ->
       done()
 
   it "should add a task to queue", (done) ->
-    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', () =>
-      @qi.getNumTaskleft @queue_name, (num) =>
+    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+      .then ()=> @qi.getNumTaskleft @queue_name
+      .then (num) =>
         expect(num).toEqual 1
         done()
 
   it "should empty queue", (done) ->
-    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', () =>
-      @qi.getNumTaskleft @queue_name, (num) =>
-        @qi.emptyQueue @queue_name, () =>
-          @qi.getNumTaskleft @queue_name, (num) =>
-            expect(num).toEqual 0
-            done()
+    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+      .then ()=> @qi.getNumTaskleft @queue_name
+      .then ()=> @qi.emptyQueue @queue_name
+      .then ()=> @qi.getNumTaskleft @queue_name
+      .then (num) =>
+        expect(num).toEqual 0
+        done()
 
   it "should successfully broadcast a valid task", (done)->
     @qi.broadcast @auth_token, "new task", "broadcasted message", (status)=>
@@ -98,21 +100,24 @@ describe "QueueInterface", ->
   describe "isBusy", ->
 
     it "should return true when is #{@auth_token} is not empty and #{@auth_token}_BUSY is 'BUSY'", (done) ->
-      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', ()=>
-        @qi.setIsBusy @auth_token, 30, ()=>
-          @qi.isBusy @auth_token, (is_busy)=>
-            expect(is_busy).toEqual true
-            done()
+      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.setIsBusy @auth_token, 30
+        .then ()=> @qi.isBusy @auth_token
+        .then (is_busy)=>
+          expect(is_busy).toEqual true
+          done()
 
     it "should return true when is #{@auth_token} is empty and #{@auth_token}_BUSY is 'BUSY'", (done) ->
-      @qi.setIsBusy @auth_token, 30, ()=>
-        @qi.isBusy @auth_token, (is_busy)=>
+      @qi.setIsBusy @auth_token, 30
+        .then ()=> @qi.isBusy @auth_token
+        .then (is_busy)=>
           expect(is_busy).toEqual true
           done()
 
     it "should return true when is #{@auth_token} is not empty and #{@auth_token}_BUSY is null", (done) ->
-      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head', ()=>
-        @qi.isBusy @auth_token, (is_busy)=>
+      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.isBusy @auth_token
+        .then (is_busy)=>
           expect(is_busy).toEqual true
           done()
 

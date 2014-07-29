@@ -1,7 +1,9 @@
-kson = require 'kson'
 # @Description: This class handles the interfacing between the scraping system and the redis server
+
+fs    = require 'fs'
+kson  = require 'kson'
+Q     = require 'q'
 redis = require 'redis'
-fs = require 'fs'
 
 class QueueInterface
 
@@ -65,32 +67,54 @@ class QueueInterface
         callback && callback(false)
 
   # @Description: Sets queueName to be Busy for x seconds
-  # @param: queueName:String
-  # @param: sec_expiry:Int
-  # @param: callback:function()
+  # @param:   queueName:String
+  # @param:   sec_expiry:Int
+  # @param:   callback:function()
+  # @return:  promise:Promise
   setIsBusy: (queueName, sec_expiry, callback)->
+    deferred = Q.defer()
     @redisClient.setex "#{queueName}_BUSY", sec_expiry, "BUSY", (error, result)->
       callback && callback()
+      if error
+        deferred.reject error
+      else
+        deferred.resolve result
+
+    deferred.promise
 
 
   # @Description: Atomic method to check that REDIS:queueName llen > 0 && REDIS:queueName_BUSY == true
   # @param: queueName:String
   # @param: callback:function( busy:Boolean )
   isBusy: (queueName, callback)->
+    deferred = Q.defer()    
     @redisClient.multi([
       ["llen", queueName],
       ["get", "#{queueName}_BUSY"]
     ]).exec (err, replies)->
         is_busy = replies[0] > 0 || !!replies[1]
         callback && callback is_busy
+        if err
+          deferred.reject err
+        else
+          deferred.resolve is_busy
+
+    deferred.promise            
 
   # @Description: gets count of outstanding subtask for task
   # @param: queueName:string
   # @param: callback:function(result:integer)
   getNumTaskleft: (queueName, callback)->
+    deferred = Q.defer()
     @queue_names.push(queueName) unless queueName in @queue_names
     @redisClient.llen queueName, (error, result)=>
       callback && callback result
+      if error
+        deferred.reject error
+      else
+        deferred.resolve result
+
+    deferred.promise      
 
   # @Description: gets the next task from the queue
   # @param: queueName:string
@@ -143,6 +167,7 @@ class QueueInterface
   # @param: task_position:string
   # @param: callback:function()
   addTaskToQueue: (queueName, task_type, task_option_obj, task_position, callback)->
+    deferred = Q.defer()    
     @queue_names.push(queueName) unless queueName in @queue_names
     if @stop_send then return
 
@@ -158,7 +183,13 @@ class QueueInterface
     task_option_obj.task_type = task_type
     task_info_string = kson.stringify task_option_obj
     @redisClient[pushMethod] queueName, task_info_string, (error, result)=>
-      callback && callback()
+      callback && callback result
+      if error
+        deferred.reject error
+      else
+        deferred.resolve result
+
+    deferred.promise
 
 
   
@@ -166,8 +197,15 @@ class QueueInterface
   # @param: queueName:string
   # @param: callback:function()  
   emptyQueue : (queueName, callback)->
+    deferred = Q.defer()    
     @redisClient.del queueName, (error, result)=>
-      callback && callback()
+      callback && callback result
+      if error
+        deferred.reject error
+      else
+        deferred.resolve result
+
+    deferred.promise
 
   # Returns the environment this queue is currently running in
   environment : ()->
