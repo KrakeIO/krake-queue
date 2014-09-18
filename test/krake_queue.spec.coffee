@@ -28,10 +28,6 @@ describe "QueueInterface", ->
   it "queue should be running in testing environment", ->
     expect(@qi.environment()).toEqual 'test'
 
-  it "should include UNIT_TESTING in queue_names", ->
-    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
-    expect(@queue_name in @qi.queue_names).toBe true
-
   it "should have an empty queue", (done) ->
     @qi.getNumTaskleft @queue_name, (num) =>
       expect(num).toEqual 0
@@ -42,15 +38,6 @@ describe "QueueInterface", ->
       .then ()=> @qi.getNumTaskleft @queue_name
       .then (num) =>
         expect(num).toEqual 1
-        done()
-
-  it "should empty queue", (done) ->
-    @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
-      .then ()=> @qi.getNumTaskleft @queue_name
-      .then ()=> @qi.emptyQueue @queue_name
-      .then ()=> @qi.getNumTaskleft @queue_name
-      .then (num) =>
-        expect(num).toEqual 0
         done()
 
   it "should successfully broadcast a valid task", (done)->
@@ -139,3 +126,101 @@ describe "QueueInterface", ->
       @qi.areEngaged @auth_token, (are_engaged)=>
           expect(are_engaged).toEqual false
           done()    
+
+  describe "getSeedQueueName", ->
+    it "returns well formed seed queue name", ->
+      expect(@qi.getSeedQueueName("TESTING")).toEqual "TESTING_SEED"
+
+  describe "getNumSeedsleft", ->
+    it "should return the number of seeds left in the queue", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'        
+        .then ()=> @qi.getNumSeedsleft @queue_name
+        .then (num) =>
+          expect(num).toEqual 3
+          done() 
+
+  describe "hasSeedsLeft", ->
+    it "should return false when there are no seeds", (done) ->    
+      @qi.hasSeedsLeft @queue_name
+        .then (has_seed)=> 
+          expect(has_seed).toEqual false
+          done()
+
+    it "should return true when there are seeds", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.hasSeedsLeft @queue_name
+        .then (has_seed) =>
+          expect(has_seed).toEqual true
+          done()     
+
+  describe "addTaskToSeedQueue", ->
+    it "should add first task to seed queue", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.getNumTaskleft @queue_name
+        .then (num) =>
+          expect(num).toEqual 0
+          done()    
+
+    it "should add all tasks just to seed queue", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'        
+        .then ()=> @qi.getNumSeedsleft @queue_name
+
+        .then (num) =>
+          expect(num).toEqual 3
+          @qi.getNumTaskleft @queue_name
+
+        .then (num) =>
+          expect(num).toEqual 0
+          done()
+
+  describe "transplantSeed", ->
+    it "should move plant the seed in the main queue", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.getNumSeedsleft @queue_name
+        .then (num_seeds)=> 
+          expect(num_seeds).toEqual 1        
+          @qi.getNumTaskleft @queue_name
+
+        .then (num_tasks) =>
+          expect(num_tasks).toEqual 0
+          @qi.transplantSeed @queue_name
+
+        .then (transplanted) =>
+          expect(transplanted).toEqual true
+          @qi.getNumSeedsleft @queue_name
+
+        .then (num_seeds)=> 
+          expect(num_seeds).toEqual 0        
+          @qi.getNumTaskleft @queue_name
+
+        .then (num_tasks) =>
+          expect(num_tasks).toEqual 1          
+          done() 
+
+    it "should return false when there is no seed to plant", (done) ->
+      @qi.transplantSeed @queue_name
+        .then (transplanted) =>
+          expect(transplanted).toEqual false   
+          done() 
+
+  describe "emptyQueue", ->
+    it "should empty task queue", (done) ->
+      @qi.addTaskToQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.getNumTaskleft @queue_name
+        .then ()=> @qi.emptyQueue @queue_name
+        .then ()=> @qi.getNumTaskleft @queue_name
+        .then (num) =>
+          expect(num).toEqual 0
+          done()
+
+    it "should empty seed queue", (done) ->
+      @qi.addTaskToSeedQueue @queue_name, @task_type, @task_option_obj, 'head'
+        .then ()=> @qi.emptyQueue @queue_name
+        .then ()=> @qi.getNumSeedsleft @queue_name
+        .then (num) =>
+          expect(num).toEqual 0
+          done()
