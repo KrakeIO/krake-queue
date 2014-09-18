@@ -20,7 +20,6 @@ class QueueInterface
   #         breadth = go as broad as possiblebefore going deep  
   # @param: initialCallBack:function()
   constructor: (redisInfo, initialCallBack)->
-    @queue_names = ['QUARANTINED_TASKS']
     @eventListeners = {}
     
     #when true prevents pushing to queue stack
@@ -124,9 +123,8 @@ class QueueInterface
   # @Description: gets count of outstanding subtask for task
   # @param: queueName:string
   # @param: callback:function(result:integer)
-  getNumTaskleft: (queueName, callback)->
+  getNumTaskleft: (queueName, callback) ->
     deferred = Q.defer()
-    @queue_names.push(queueName) unless queueName in @queue_names
     @redisClient.llen queueName, (error, result)=>
       callback? result
       if error
@@ -134,7 +132,7 @@ class QueueInterface
       else
         deferred.resolve result
 
-    deferred.promise      
+    deferred.promise
 
   # @Description: gets the next task from the queue
   # @param: queueName:string
@@ -162,7 +160,6 @@ class QueueInterface
   #          }]   
   getTaskFromQueue: (queueName, callback)->
     deferred = Q.defer()
-    @queue_names.push(queueName) unless queueName in @queue_names
     switch @redisInfo.scrapeMode
       when 'depth' then pop_method = 'rpop'
       when 'breadth' then pop_method = 'lpop'
@@ -196,20 +193,20 @@ class QueueInterface
   # @param: callback:function()
   addTaskToQueue: (queueName, task_type, task_option_obj, task_position, callback)->
     deferred = Q.defer()
-    @queue_names.push(queueName) unless queueName in @queue_names
     if @stop_send then return
 
     switch task_position
       when 'head' then pushMethod = 'lpush'
       when 'tail' then pushMethod = 'rpush'
-      when 'bad' then pushMethod = 'rpush'
+      when 'bad'  then pushMethod = 'rpush'
       else pushMethod = 'rpush'
 
     if task_position == 'bad' then queueName == 'QUARANTINED_TASKS'
 
-    task_option_obj.task_id = queueName
+    task_option_obj.task_id   = queueName
     task_option_obj.task_type = task_type
-    task_info_string = kson.stringify task_option_obj
+    task_info_string          = kson.stringify task_option_obj
+
     @redisClient[pushMethod] queueName, task_info_string, (error, result)=>
       callback? result
       if error
@@ -219,19 +216,94 @@ class QueueInterface
 
     deferred.promise
 
+  # @Description: transfers one of the task from the seed queue to the actual queue
+  # @param: queueName:String
+  # @param: callback:function(result:Boolean)
+  transplantSeed: (queueName, callback) ->
+    deferred = Q.defer()    
+    seedQueueName = @getSeedQueueName queueName
+    @redisClient.rpoplpush seedQueueName, queueName, (error, task_info_string)=>
+      if error
+        deferred.reject error          
+        callback? false
 
+      else if task_info_string
+        deferred.resolve true
+        callback? true  
+
+      else             
+        deferred.resolve false
+        callback? false
+      
+    deferred.promise    
+
+  # @Description: checks if we still have seeds left
+  # @param: queueName:String
+  # @param: callback:function(result:Boolean)
+  hasSeedsLeft: (queueName, callback) ->
+    deferred = Q.defer()
+    @getNumSeedsleft queueName
+      .then (num_seeds_left)=>
+        has_seeds = num_seeds_left > 0
+        deferred.resolve has_seeds
+        callback? has_seeds
+
+    deferred.promise
+
+  # @Description: returns the number of seeds left
+  getNumSeedsleft: (queueName, callback) ->
+    seedQueue = @getSeedQueueName queueName
+    @getNumTaskleft seedQueue, callback
+
+  # @Description: Adds the current task to the seed queue instead of the main queue if the current queue is busy
+  # @param: queueName:string
+  # @param: task_type:string
+  #    - There are only 2 task_types to date :
+  #       'listing page scrape'
+  #       'detailed page scrape'  
+  # @param: task_option_obj:object
+  # @param: task_position:string
+  # @param: callback:function()  
+  addTaskToSeedQueue: (queueName, task_type, task_option_obj, task_position, callback)->
+    deferred = Q.defer()    
+    task_option_obj.task_id   = queueName
+    task_option_obj.task_type = task_type
+    task_info_string          = kson.stringify task_option_obj
+
+    seedQueueName = @getSeedQueueName queueName
+
+    @redisClient.lpush seedQueueName, task_info_string, (error, result)=>
+      callback? result
+      if error
+        deferred.reject error
+      else
+        deferred.resolve result        
+
+    deferred.promise
+
+
+  # @Description: Returns the seed queue name given a queue name
+  # @param: queue_name:String
+  # @return: seed_queue_name:String
+  getSeedQueueName: (queue_name) ->
+    "#{queue_name}_SEED"
   
   # @Description: empties the task queue
   # @param: queueName:string
   # @param: callback:function()  
   emptyQueue : (queueName, callback)->
-    deferred = Q.defer()    
-    @redisClient.del queueName, (error, result)=>
-      callback? result
-      if error
-        deferred.reject error
-      else
-        deferred.resolve result
+    deferred      = Q.defer()    
+    seedQueueName = @getSeedQueueName(queueName)
+    
+    @redisClient.multi([
+      ["del", queueName],
+      ["del", seedQueueName]
+    ]).exec (err, results)->
+        callback? is_busy
+        if err
+          deferred.reject err
+        else
+          deferred.resolve results
 
     deferred.promise
 
