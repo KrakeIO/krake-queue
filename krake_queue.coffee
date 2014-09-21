@@ -299,11 +299,10 @@ class QueueInterface
       ["del", queueName],
       ["del", seedQueueName]
     ]).exec (err, results)->
-        callback? is_busy
-        if err
-          deferred.reject err
-        else
-          deferred.resolve results
+      if err
+        deferred.reject err
+      else
+        deferred.resolve results
 
     deferred.promise
 
