@@ -29,8 +29,11 @@ class QueueInterface
     @stop_receive = false
     
     @redisInfo = redisInfo
-    @redisClient = redis.createClient redisInfo.port, redisInfo.host, { password: redisInfo.password }
-    @redisEventListener = redis.createClient redisInfo.port, redisInfo.host,  { password: redisInfo.password }
+    @redisClient = redis.createClient redisInfo.port, redisInfo.host
+    @redisEventListener = redis.createClient redisInfo.port, redisInfo.host
+    if redisInfo.password
+      @redisClient.auth redisInfo.password
+      @redisEventListener.auth redisInfo.password
     
     # console.log "[QUEUE_INTERFACE] : Subscribed to : " + redisInfo.queueName + "*"
     @redisEventListener.psubscribe (redisInfo.queueName + "*")
