@@ -204,7 +204,7 @@ class QueueInterface
       when 'bad'  then pushMethod = 'rpush'
       else pushMethod = 'rpush'
 
-    if task_position == 'bad' then queueName = "#{task_option_obj.task_id}::QUARANTINED::#{task_option_obj.task_key}"
+    if task_position == 'bad' then queueName = "QUARANTINED::#{task_option_obj.task_id}::#{task_option_obj.task_key}"
 
     task_option_obj.task_id   = queueName
     task_option_obj.task_type = task_type
